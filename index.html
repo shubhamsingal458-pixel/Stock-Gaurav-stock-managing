@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AutoStock – Parts Inventory</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#14181f;--mut:#6b7280;--br:#e5e7eb;--ac:#e8590c;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--card:#1a1d24;--tx:#f1f3f6;--mut:#9aa3b2;--br:#2a2f3a}}
+:root[data-theme="dark"]{--bg:#0f1115;--card:#1a1d24;--tx:#f1f3f6;--mut:#9aa3b2;--br:#2a2f3a}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:520px;margin:0 auto;padding:12px 14px 96px}
+h1{font-size:20px;margin:6px 0 12px;display:flex;justify-content:space-between;align-items:center}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:var(--card);border:1px solid var(--br);border-radius:14px;padding:12px}
+.k{color:var(--mut);font-size:12px}.v{font-size:22px;font-weight:700;margin-top:2px}
+h2{font-size:14px;color:var(--mut);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.04em}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.item{margin-bottom:10px}.nm{font-weight:600}.sub{color:var(--mut);font-size:12px}
+.b{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;color:#fff}
+.ok{background:var(--ok)}.low{background:var(--warn)}.out{background:var(--bad)}
+button,input,select{font:inherit;color:var(--tx)}
+.btn{border:0;border-radius:10px;padding:9px 14px;font-weight:600;background:var(--ac);color:#fff}
+.btn.g{background:transparent;border:1px solid var(--br)}.btn.in{background:var(--ok)}.btn.o{background:var(--bad)}
+.acts{display:flex;gap:8px;margin-top:10px}.acts .btn{flex:1;padding:8px}
+input,select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--br);background:var(--card);margin-top:4px}
+label{font-size:12px;color:var(--mut);display:block;margin-top:10px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0}.chip{flex:none;padding:6px 12px;border-radius:99px;border:1px solid var(--br);background:var(--card);font-size:13px}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.bar{height:8px;border-radius:6px;background:var(--br);overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--ac)}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--br);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav div{display:flex;width:100%;max-width:520px}nav button{flex:1;border:0;background:none;padding:12px 0;color:var(--mut);font-weight:600}nav button.on{color:var(--ac)}
+.fab{position:fixed;right:18px;bottom:calc(72px + env(safe-area-inset-bottom,0px));width:54px;height:54px;border-radius:50%;border:0;background:var(--ac);color:#fff;font-size:28px;box-shadow:0 4px 14px #0004}
+#ov{position:fixed;inset:0;background:#0007;display:none;align-items:flex-end;justify-content:center;z-index:9}
+#sh{background:var(--card);width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));max-height:90%;overflow:auto}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.empty{text-align:center;color:var(--mut);padding:30px 0}
+</style></head><body>
+<div id="app"></div>
+<button class="fab" id="fab" onclick="editItem()" aria-label="Add part">+</button>
+<nav><div><button id="n0" onclick="go(0)">Dashboard</button><button id="n1" onclick="go(1)">Stock</button><button id="n3" onclick="go(3)">Counter</button><button id="n2" onclick="go(2)">History</button></div></nav>
+<div id="ov" onclick="if(event.target===this)closeSh()"><div id="sh"></div></div>
+<script>
+var KEY='autostock.v1',CATS=['Engine','Brakes','Electrical','Filters','Fluids','Body'];
+var S={items:[],log:[]},view=0,q='',cat='All';
+function load(){try{var d=JSON.parse(localStorage.getItem(KEY));if(d&&d.items){S=d;return}}catch(e){}
+S.items=[
+['BP-101','Brake Pad Set (Front)','Brakes',24,10,1450,1950,'8708',18,'A1'],
+['EO-530','Engine Oil 5W-30 (4L)','Fluids',6,12,1900,2450,'2710',18,'B2'],
+['AF-220','Air Filter','Filters',40,15,260,420,'8421',18,'C1'],
+['SP-884','Spark Plug (Iridium)','Engine',8,20,310,520,'8511',18,'A3'],
+['BT-12V','Battery 12V 65Ah','Electrical',0,4,4800,6200,'8507',28,'D1'],
+['WB-450','Wiper Blade 18"','Body',32,10,120,240,'8512',18,'E2'],
+['CP-310','Clutch Plate','Engine',5,6,1700,2300,'8708',28,'A2'],
+['HB-H4','Headlight Bulb H4','Electrical',60,20,95,180,'8539',18,'D3']
+].map(function(r,i){return{id:'i'+i,sku:r[0],name:r[1],cat:r[2],qty:r[3],min:r[4],cost:r[5],price:r[6],hsn:r[7],gst:r[8],loc:r[9]}});S.log=[]}
+var FS=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Filesystem,FILE='AutoStock/autostock.json';
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+if(FS)FS.writeFile({path:FILE,directory:'DOCUMENTS',data:JSON.stringify(S),encoding:'utf8',recursive:true}).catch(function(e){console.error(e)})}
+async function loadAny(){if(FS){try{var r=await FS.readFile({path:FILE,directory:'DOCUMENTS',encoding:'utf8'});var d=JSON.parse(r.data);if(d&&d.items){S=d;return}}catch(e){}}load();if(FS)save()}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function inr(n){return '₹'+Math.round(n).toLocaleString('en-IN')}
+function st(i){return i.qty<=0?['out','Out']:i.qty<=i.min?['low','Low']:['ok','In stock']}
+function go(v){view=v;render()}
+function render(){
+for(var n=0;n<4;n++)document.getElementById('n'+n).className=n==view?'on':'';
+document.getElementById('fab').style.display=(view==2||view==3)?'none':'block';
+var h='';
+if(view==0){
+var u=0,val=0,low=S.items.filter(function(i){u+=i.qty;val+=i.qty*i.cost;return i.qty<=i.min});
+h+='<h1>AutoStock</h1><div class="grid">'+
+'<div class="card"><div class="k">Part types</div><div class="v">'+S.items.length+'</div></div>'+
+'<div class="card"><div class="k">Units on hand</div><div class="v">'+u.toLocaleString('en-IN')+'</div></div>'+
+'<div class="card"><div class="k">Stock value (cost)</div><div class="v">'+inr(val)+'</div></div>'+
+'<div class="card"><div class="k">Needs reorder</div><div class="v" style="color:var(--bad)">'+low.length+'</div></div></div>';
+h+='<h2>Reorder list</h2>';
+if(!low.length)h+='<div class="card empty">All parts are above minimum level 🎉</div>';
+low.forEach(function(i){var need=Math.max(i.min*2-i.qty,1);h+='<div class="card item"><div class="row"><div><div class="nm">'+esc(i.name)+'</div><div class="sub">'+esc(i.sku)+' · have '+i.qty+', min '+i.min+'</div></div><span class="b '+st(i)[0]+'">'+st(i)[1]+'</span></div><div class="sub" style="margin-top:6px">Suggested order: <b>'+need+'</b> units (≈ '+inr(need*i.cost)+')</div></div>'});
+h+='<h2>By category</h2><div class="card">';
+var cv={},mx=1;S.items.forEach(function(i){cv[i.cat]=(cv[i.cat]||0)+i.qty*i.cost});for(var k in cv)mx=Math.max(mx,cv[k]);
+Object.keys(cv).forEach(function(k){h+='<div style="margin-bottom:8px"><div class="row"><span>'+esc(k)+'</span><span class="sub">'+inr(cv[k])+'</span></div><div class="bar"><i style="width:'+cv[k]/mx*100+'%"></i></div></div>'});
+h+='</div>'}
+if(view==1){
+h+='<h1>Stock</h1><input id="sq" placeholder="Search name, SKU, location…" value="'+esc(q)+'" oninput="q=this.value;list()"><div class="chips" id="chips"></div><div id="lst"></div>'}
+if(view==2){
+h+='<h1>Movement history</h1>';
+if(!S.log.length)h+='<div class="card empty">No stock movements yet.<br>Use Stock In / Out on any part.</div>';
+S.log.slice(0,100).forEach(function(l){var d=new Date(l.t);h+='<div class="card item"><div class="row"><div><div class="nm">'+esc(l.name)+'</div><div class="sub">'+d.toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(l.note?' · '+esc(l.note):'')+'</div></div><b style="color:var(--'+(l.type=='in'?'ok':'bad')+')">'+(l.type=='in'?'+':'−')+l.qty+'</b></div></div>'})}
+if(view==3)h+=cview();
+document.getElementById('app').innerHTML=h;if(view==1)list();if(view==3)cl()}
+function list(){
+var c=document.getElementById('chips'),h='';
+['All'].concat(CATS).forEach(function(x){h+='<button class="chip'+(x==cat?' on':'')+'" onclick="cat=\''+x+'\';list()">'+x+'</button>'});c.innerHTML=h;
+var t=q.toLowerCase(),r=S.items.filter(function(i){return(cat=='All'||i.cat==cat)&&(!t||(i.name+i.sku+i.loc).toLowerCase().indexOf(t)>-1)});
+h='';if(!r.length)h='<div class="empty">No parts found.</div>';
+r.forEach(function(i){var s=st(i);h+='<div class="card item"><div class="row" onclick="editItem(\''+i.id+'\')"><div><div class="nm">'+esc(i.name)+'</div><div class="sub">'+esc(i.sku)+' · '+esc(i.cat)+' · Rack '+esc(i.loc)+'</div><div class="sub">Sell '+inr(i.price)+' · GST '+i.gst+'%</div></div><div style="text-align:right"><div class="v">'+i.qty+'</div><span class="b '+s[0]+'">'+s[1]+'</span></div></div><div class="acts"><button class="btn in" onclick="move(\''+i.id+'\',\'in\')">Stock In</button><button class="btn o" onclick="move(\''+i.id+'\',\'out\')">Stock Out</button></div></div>'});
+document.getElementById('lst').innerHTML=h}
+function openSh(h){document.getElementById('sh').innerHTML=h;document.getElementById('ov').style.display='flex'}
+function closeSh(){document.getElementById('ov').style.display='none'}
+function get(id){return S.items.filter(function(i){return i.id==id})[0]}
+function move(id,t){var i=get(id);openSh('<h1>'+(t=='in'?'Stock In':'Stock Out')+'</h1><div class="sub">'+esc(i.name)+' · on hand '+i.qty+'</div><label>Quantity</label><input id="mq" type="number" min="1" inputmode="numeric" value="1"><label>Note (supplier, invoice, job card…)</label><input id="mn"><div class="acts"><button class="btn g" onclick="closeSh()">Cancel</button><button class="btn '+(t=='in'?'in':'o')+'" onclick="doMove(\''+id+'\',\''+t+'\')">Confirm</button></div><div id="er" class="sub" style="color:var(--bad);margin-top:8px"></div>')}
+function doMove(id,t){var i=get(id),n=parseInt(document.getElementById('mq').value,10);
+if(!(n>0)){document.getElementById('er').textContent='Enter a quantity above 0.';return}
+if(t=='out'&&n>i.qty){document.getElementById('er').textContent='Only '+i.qty+' in stock.';return}
+i.qty+=t=='in'?n:-n;S.log.unshift({t:Date.now(),id:id,name:i.name,type:t,qty:n,note:document.getElementById('mn').value.trim()});save();closeSh();render()}
+function editItem(id){var i=id?get(id):{sku:'',name:'',cat:'Engine',qty:0,min:5,cost:'',price:'',hsn:'',gst:18,loc:''};
+var o=CATS.map(function(c){return'<option'+(c==i.cat?' selected':'')+'>'+c+'</option>'}).join('');
+openSh('<h1>'+(id?'Edit part':'New part')+'</h1><label>Part name</label><input id="f_name" value="'+esc(i.name)+'"><div class="two"><div><label>SKU / Part no.</label><input id="f_sku" value="'+esc(i.sku)+'"></div><div><label>Category</label><select id="f_cat">'+o+'</select></div><div><label>Opening qty</label><input id="f_qty" type="number" value="'+i.qty+'"'+(id?' disabled':'')+'></div><div><label>Min level</label><input id="f_min" type="number" value="'+i.min+'"></div><div><label>Cost price ₹</label><input id="f_cost" type="number" value="'+i.cost+'"></div><div><label>Selling price ₹</label><input id="f_price" type="number" value="'+i.price+'"></div><div><label>HSN</label><input id="f_hsn" value="'+esc(i.hsn)+'"></div><div><label>GST %</label><select id="f_gst">'+[5,12,18,28].map(function(g){return'<option'+(g==i.gst?' selected':'')+'>'+g+'</option>'}).join('')+'</select></div></div><label>Rack / location</label><input id="f_loc" value="'+esc(i.loc)+'"><div class="acts"><button class="btn g" onclick="closeSh()">Cancel</button>'+(id?'<button class="btn o" onclick="delItem(\''+id+'\')">Delete</button>':'')+'<button class="btn" onclick="saveItem(\''+(id||'')+'\')">Save</button></div><div id="er" class="sub" style="color:var(--bad);margin-top:8px"></div>')}
+function saveItem(id){var g=function(k){return document.getElementById('f_'+k).value};
+if(!g('name').trim()){document.getElementById('er').textContent='Part name is required.';return}
+var d={sku:g('sku').trim(),name:g('name').trim(),cat:g('cat'),min:+g('min')||0,cost:+g('cost')||0,price:+g('price')||0,hsn:g('hsn').trim(),gst:+g('gst'),loc:g('loc').trim()};
+if(id){Object.assign(get(id),d)}else{d.id='i'+Date.now();d.qty=Math.max(0,parseInt(g('qty'),10)||0);S.items.push(d);if(d.qty)S.log.unshift({t:Date.now(),id:d.id,name:d.name,type:'in',qty:d.qty,note:'Opening stock'})}
+save();closeSh();if(view==0)view=1;render()}
+function delItem(id){S.items=S.items.filter(function(i){return i.id!=id});save();closeSh();render()}
+
+var C={cart:[],cust:'',veh:''},cq='';
+function cview(){return '<h1>Front desk</h1><input id="cq" placeholder="Search part, SKU or rack…" value="'+esc(cq)+'" oninput="cq=this.value;cl()"><div id="cres" style="margin-top:10px"></div><h2>Bill</h2><div id="cart"></div>'}
+function cl(){var t=cq.toLowerCase(),h='',r=t?S.items.filter(function(i){return(i.name+i.sku+i.loc).toLowerCase().indexOf(t)>-1}).slice(0,6):[];
+if(!t)h='<div class="sub">Type to look up price and availability.</div>';else if(!r.length)h='<div class="empty">No matching part.</div>';
+r.forEach(function(i){var s=st(i);h+='<div class="card item"><div class="row"><div><div class="nm">'+esc(i.name)+'</div><div class="sub">'+esc(i.sku)+' · Rack '+esc(i.loc)+'</div><div class="sub">'+inr(i.price)+' + '+i.gst+'% GST</div></div><div style="text-align:right"><span class="b '+s[0]+'">'+(i.qty>0?i.qty+' avail':'Out')+'</span><div style="margin-top:8px"><button class="btn"'+(i.qty>0?'':' disabled style="opacity:.4"')+' onclick="addCart(\''+i.id+'\')">Add</button></div></div></div></div>'});
+document.getElementById('cres').innerHTML=h;cb()}
+function addCart(id){var l=C.cart.filter(function(x){return x.id==id})[0],i=get(id);if(l){if(l.qty<i.qty)l.qty++}else C.cart.push({id:id,qty:1});cb()}
+function chg(id,d){var l=C.cart.filter(function(x){return x.id==id})[0],i=get(id);l.qty=Math.min(l.qty+d,i.qty);if(l.qty<=0)C.cart=C.cart.filter(function(x){return x!==l});cb()}
+function cb(){var h='',sub=0,gst=0;
+C.cart.forEach(function(l){var i=get(l.id),a=i.price*l.qty;sub+=a;gst+=a*i.gst/100;h+='<div class="row" style="margin-bottom:8px"><div><div class="nm">'+esc(i.name)+'</div><div class="sub">'+inr(i.price)+' × '+l.qty+'</div></div><div class="row"><button class="btn g" onclick="chg(\''+l.id+'\',-1)">−</button><b>'+l.qty+'</b><button class="btn g" onclick="chg(\''+l.id+'\',1)">+</button></div></div>'});
+if(!C.cart.length)h='<div class="sub">Cart is empty.</div>';
+else h+='<label>Customer name</label><input value="'+esc(C.cust)+'" oninput="C.cust=this.value"><label>Vehicle reg. no.</label><input value="'+esc(C.veh)+'" oninput="C.veh=this.value"><div class="row" style="margin-top:12px"><span class="sub">Subtotal</span><span>'+inr(sub)+'</span></div><div class="row"><span class="sub">GST</span><span>'+inr(gst)+'</span></div><div class="row"><b>Total</b><b style="font-size:20px">'+inr(sub+gst)+'</b></div><div class="acts"><button class="btn g" onclick="C.cart=[];cb()">Clear</button><button class="btn in" onclick="sale()">Complete sale</button></div>';
+document.getElementById('cart').innerHTML='<div class="card">'+h+'</div>'}
+function sale(){var sub=0,gst=0,rows='',note='Sale'+(C.cust?' – '+C.cust:'')+(C.veh?' ('+C.veh+')':'');
+C.cart.forEach(function(l){var i=get(l.id),a=i.price*l.qty;i.qty-=l.qty;sub+=a;gst+=a*i.gst/100;rows+='<div class="row"><span>'+esc(i.name)+' × '+l.qty+'</span><span>'+inr(a)+'</span></div>';S.log.unshift({t:Date.now(),id:i.id,name:i.name,type:'out',qty:l.qty,note:note})});
+C.cart=[];C.cust='';C.veh='';save();
+openSh('<h1>Sale complete ✔</h1><div class="sub">'+esc(note)+'</div><div style="margin:12px 0">'+rows+'</div><div class="row"><span class="sub">GST</span><span>'+inr(gst)+'</span></div><div class="row"><b>Total</b><b>'+inr(sub+gst)+'</b></div><div class="acts"><button class="btn" onclick="closeSh();render()">Done</button></div>')}
+loadAny().then(render);
+</script></body></html>
